@@ -4,13 +4,13 @@ import com.example.backend.dto.AiResponseDto;
 import com.example.backend.dto.OnboardingRequestDto;
 import com.example.backend.entity.User;
 import com.example.backend.exception.InsufficientPointsException;
+import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +65,8 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id)); // 구체적인 예외 발생
     }
 }

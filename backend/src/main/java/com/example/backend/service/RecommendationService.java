@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.dto.RecommendedUserDto;
 import com.example.backend.entity.Recommendation;
 import com.example.backend.entity.User;
+import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.RecommendationRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,13 +16,30 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
     private static final int DAILY_RECOMMENDATION_LIMIT = 3;
+
+    @Transactional // 이 어노테이션으로 전체 메소드가 하나의 트랜잭션으로 묶임
+    public List<RecommendedUserDto> purchaseAdditionalRecommendations(Long currentUserId, int count) {
+
+        // 1. 포인트 차감 로직 (ex. 추가 추천 시 20 포인트)
+        // 1명당 20 포인트라고 가정하고, 요청한 인원수만큼 포인트 차감
+        int pointsToDeduct = count * 20;
+        userService.deductPoints(currentUserId, pointsToDeduct);
+
+        // 2. 추가 추천 로직 실행
+        // 포인트 차감 + 추천 -> 예외 시 묶어서 자동 롤백 (트랜잭션 원자적으로)
+        return getAdditionalRecommendations(currentUserId, count);
+    }
 
     /**
      * 포인트를 사용해 요청한 인원수만큼 사용자를 추가로 추천하는 메소드
@@ -78,7 +96,7 @@ public class RecommendationService {
     public List<RecommendedUserDto> getRecommendationsForUser(Long currentUserId) {
         // 1. 현재 사용자 정보 조회
         User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+                .orElseThrow(() -> new UserNotFoundException("Current user not found"));
 
         LocalDate today = LocalDate.now();
 
@@ -155,13 +173,31 @@ public class RecommendationService {
 
     // hobbies 필드(JSON 문자열)를 파싱하여 겹치는 취미 개수를 세는 헬퍼 메소드
     private long countMatchingHobbies(User user1, User user2) {
-        // 간단한 구현을 위해, 실제로는 JSON 파싱 라이브러리(Gson, Jackson) 사용해도 됨
-        String hobbies1 = user1.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
-        String hobbies2 = user2.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
+//        String hobbies1 = user1.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
+//        String hobbies2 = user2.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
+//
+//        List<String> list1 = List.of(hobbies1.split(","));
+//        List<String> list2 = List.of(hobbies2.split(","));
+//
+//        return list1.stream().filter(list2::contains).count();
 
-        List<String> list1 = List.of(hobbies1.split(","));
-        List<String> list2 = List.of(hobbies2.split(","));
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            // hobbies가 null이거나 비어있을 경우를 대비
+            if (user1.getHobbies() == null || user2.getHobbies() == null ||
+                    user1.getHobbies().isBlank() || user2.getHobbies().isBlank()) {
+                return 0;
+            }
+            List<String> hobbies1 = mapper.readValue(user1.getHobbies(), new TypeReference<>() {});
+            List<String> hobbies2 = mapper.readValue(user2.getHobbies(), new TypeReference<>() {});
 
-        return list1.stream().filter(list2::contains).count();
+            // 공통된 요소의 개수를 효율적으로 계산
+            hobbies1.retainAll(hobbies2);
+            return hobbies1.size();
+        } catch (Exception e) {
+            // JSON 파싱 실패 시 로그를 남기고 0을 반환하여 서비스 중단을 방지
+            // log.error("Failed to parse hobbies", e);
+            return 0;
+        }
     }
 }

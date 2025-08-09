@@ -22,8 +22,7 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<User> getMyInfo(@RequestParam Long userId) {
-        // orElseThrow()는 사용자가 없을 때 500 에러를 반환하므로, 실제 서비스에서는 예외 처리 필요
-        User user = userService.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userService.findById(userId);
         return ResponseEntity.ok(user);
     }
 
