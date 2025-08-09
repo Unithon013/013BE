@@ -15,8 +15,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-@app.post("/analyze-video", summary="자기소개 영상 분석 및 사용자 정보 추출")
-async def analyze_video_endpoint(
+@app.post("/process-video", summary="자기소개 영상 분석 및 사용자 정보 추출")
+async def process_video_endpoint(
     video_file: UploadFile = File(..., description="사용자의 자기소개 영상 파일 (mp4, mov 등)")
 ):
     temp_video_path = None
