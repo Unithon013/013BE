@@ -1,0 +1,91 @@
+# ───────── Python(FastAPI) 관련 ─────────
+
+# API 키 및 환경 변수
+.env
+
+# 업로드된 파일 및 임시 저장
+uploads/
+tmp/
+temp/
+
+# 파이썬 가상 환경
+venv/
+env/
+.venv/
+.env/
+.env.*
+
+# 파이썬 캐시 파일
+__pycache__/
+*.pyc
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook 체크포인트 (사용 시)
+.ipynb_checkpoints
+
+# 의존성 설치 파일
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 로컬 파일 및 임시 파일
+*.log
+*.sqlite3
+*.db
+*.pyc
+*.pyo
+*.pyd
+*.swp
+
+# 테스트 결과
+htmlcov/
+.coverage
+.tox/
+.nox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# 빌드 폴더
+build/
+dist/
+*.egg-info/
+
+# ───────── Java(Spring Boot) 관련 ─────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle || Maven
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+**/out/
+
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+application.properties
+
+# ───────── IDE / OS 관련 ─────────
+# IntelliJ / Eclipse / VSCode 등
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+bin/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# macOS / Windows 특유 파일
+.DS_Store
+Thumbs.db
