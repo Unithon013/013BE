@@ -26,12 +26,12 @@ async def analyze_video_endpoint(
         print(f"영상 파일 임시 저장 완료: {temp_video_path}")
 
         # 2. STT 서비스로 영상에서 한국어 텍스트 추출
-        transcribed_text = transcribe_video(temp_video_path)
+        transcribed_text = await transcribe_video(temp_video_path) # 비동기 처리가 불가능하면 async/await 제외
         if not transcribed_text:
             raise HTTPException(status_code=400, detail="음성 인식 가능한 텍스트를 찾을 수 없습니다. 영상을 다시 확인해주세요.")
         
-        # 3. NLP 서비스로 텍스트에서 사용자 정보 추출 (LLM 활용)
-        extracted_user_info = extract_info_llm(transcribed_text)
+        # 3. NLP 서비스로 텍스트에서 사용자 정보 추출 (Gemini LLM)
+        extracted_user_info = await extract_info_llm(transcribed_text)
         
         return JSONResponse(content={
             "status": "success",
