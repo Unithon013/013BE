@@ -62,13 +62,10 @@ public class RecommendationController {
             @RequestHeader("X-User-Id") Long currentUserId,
             @RequestBody AdditionalRecommendationRequestDto requestDto) {
 
-        // 포인트 차감 로직 (ex. 추가 추천 시 20 포인트)
-        // 1명당 20 포인트라고 가정하고, 요청한 인원수만큼 포인트 차감
-        int pointsToDeduct = requestDto.getCount() * 20;
-        userService.deductPoints(currentUserId, pointsToDeduct);
+        // 서비스에서 포인트 차감과 추천 로직을 모두 처리하도록 위임
+        List<RecommendedUserDto> newRecommendations = recommendationService.purchaseAdditionalRecommendations(currentUserId, requestDto.getCount());
 
         // 서비스 호출
-        List<RecommendedUserDto> newRecommendations = recommendationService.getAdditionalRecommendations(currentUserId, requestDto.getCount());
         return ResponseEntity.ok(newRecommendations);
     }
 }
