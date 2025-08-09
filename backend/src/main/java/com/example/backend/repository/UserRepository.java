@@ -32,13 +32,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /** 간단 거리+취미 필터링 쿼리
      * @param latitude 현재 사용자 위도
      * @param longitude 현재 사용자 경도
-     * @param hobby
+     * @param hobby 검색할 취미 키워드
      * @return 추천 대상 사용자 목록
      */
     @Query("SELECT u FROM User u WHERE u.id <> :userId AND " +
             " (6371 * acos(cos(radians(:lat)) * cos(radians(u.latitude)) * cos(radians(u.longitude) - radians(:lon)) + sin(radians(:lat)) * sin(radians(u.latitude)))) < 50 " +
-            " AND u.hobbies LIKE CONCAT('%', :hobby, '%')")
+            " AND u.hobbies LIKE CONCAT('%', :hobby, '%')") // LIKE %:hobby%
     List<User> findUsersByLocationAndHobbies(
+            @Param("userId") Long userId,
             @Param("latitude") Double latitude,
             @Param("longitude") Double longitude,
             @Param("hobby") String hobby);
