@@ -66,6 +66,10 @@ target/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 **/out/
+gradle/
+build.gradle
+gradlew
+gradlew.bat
 
 pom.xml.tag
 pom.xml.releaseBackup
