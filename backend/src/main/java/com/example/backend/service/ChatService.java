@@ -44,14 +44,14 @@ public class ChatService {
                 .room(room)
                 .senderId(senderId)
                 .messageContent(requestDto.getMessageContent())
-                .messageType(requestDto.getMessageType())
+                .messageType(Message.MessageType.valueOf(requestDto.getMessageType()))
                 .build();
 
         // 3. 메시지 저장
         messageRepository.save(newMessage);
 
         // 4. 채팅방의 마지막 메시지 업데이트
-        String lastMessage = requestDto.getMessageType() == Message.MessageType.TEXT ?
+        String lastMessage = Message.MessageType.valueOf(requestDto.getMessageType()) == Message.MessageType.TEXT ?
                 requestDto.getMessageContent() : "영상이 도착했습니다.";
         room.setLastMessage(lastMessage);
         roomRepository.save(room);
@@ -100,7 +100,7 @@ public class ChatService {
 
         // 1. 새로운 채팅방 생성 및 저장
         Room newRoom = Room.builder().build();
-        roomRepository.save(newRoom);
+         roomRepository.save(newRoom);
 
         // 2. 참가자 정보 생성 및 저장 (2명)
         Participant currentUserParticipant = Participant.builder().user(currentUser).room(newRoom).build();
@@ -115,12 +115,19 @@ public class ChatService {
                 .messageContent(currentUser.getVideoUrl()) // 영상 파일 경로를 메시지 내용으로
                 .messageType(Message.MessageType.VIDEO)
                 .build();
-        messageRepository.save(firstMessage);
+        // messageRepository.save(firstMessage); // JPA cascade
 
         // 4. 채팅방의 마지막 메시지 업데이트
         newRoom.setLastMessage("영상이 도착했습니다.");
-        roomRepository.save(newRoom);
 
+        // ** 수정:
+        // newRoom 객체의 리스트에 참가자들을 직접 추가
+        newRoom.getParticipants().add(currentUserParticipant);
+        newRoom.getParticipants().add(targetUserParticipant);
+        // newRoom 객체의 리스트에 메시지를 직접 추가
+        newRoom.addMessage(firstMessage);
+
+        roomRepository.save(newRoom);
         return newRoom;
     }
 }

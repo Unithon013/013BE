@@ -69,6 +69,12 @@ public class RecommendationService {
                 excludeUserIds,
                 count // 요청받은 인원수만큼 LIMIT 설정
         );
+        
+        // 필요 시 구현하기
+//        if (newRecommendedUsers.size() < count){
+//            // 포인트 회복 처리 로직
+//            // 해커톤 레벨에서는 사용할 일 없을 듯
+//        }
 
         if (newRecommendedUsers.isEmpty()) {
 //            throw new RuntimeException("No more users to recommend."); // 추천할 사람이 더 없을 때 예외 처리

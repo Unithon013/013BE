@@ -8,5 +8,5 @@ import lombok.Setter;
 @Setter
 public class MessageRequestDto {
     private String messageContent;
-    private Message.MessageType messageType;
+    private String messageType;
 }

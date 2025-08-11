@@ -13,6 +13,7 @@ public class ChatRoomDto {
     private Long opponentUserId;
     private String opponentName;
 
+    // TODO: 위치, 나이, 취미/관심사리스트
     // 필요하다면 상대방 프로필 이미지 URL 등 추가
 
     public ChatRoomDto(Room room, User opponent) {

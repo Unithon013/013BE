@@ -40,6 +40,4 @@ public class Message extends BaseTimeEntity {
         TEXT, VIDEO
     }
 
-    private LocalDateTime createdAt;
-
 }

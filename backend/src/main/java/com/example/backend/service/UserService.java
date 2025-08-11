@@ -25,7 +25,7 @@ public class UserService {
         // 1. 영상 파일 서버에 저장
         String videoPath = fileStorageService.storeFile(requestDto.getVideo());
         // 파일 형식 -> /media/파일명 형태로
-//        File videoFile = fileStorageService.getFile(videoPath);
+        // File videoFile = fileStorageService.getFile(videoPath);
         File videoFile = fileStorageService.getFile(
                 fileStorageService.getFileStorageLocation().resolve(videoPath.substring("/media/".length())).toString());
 
