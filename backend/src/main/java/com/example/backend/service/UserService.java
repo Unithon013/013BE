@@ -6,6 +6,7 @@ import com.example.backend.entity.User;
 import com.example.backend.exception.InsufficientPointsException;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final AiRequestService aiRequestService;
+    private final LocationService locationService;
 
     @Transactional
     public User onboardUser(OnboardingRequestDto requestDto) {
@@ -33,7 +35,15 @@ public class UserService {
 //        AiResponseDto aiResponse = aiRequestService.processVideo(videoFile); // ai 사용 시 이 부분으로 활성화 변경하기
         AiResponseDto aiResponse = aiRequestService.processVideoDev(videoFile);
 
-        // 3. 받은 정보로 User 객체 생성 및 DB 저장
+        // 3. 좌표 -> 지역명
+        Double lat = requestDto.getLatitude();
+        Double lng = requestDto.getLongitude();
+        String cityAndDistrict = null;
+        if (lat != null && lng != null) {
+            cityAndDistrict = locationService.getCityAndDistrict(lat,lng);
+        }
+
+        // 4. 받은 정보로 User 객체 생성 및 DB 저장
         User newUser = User.builder()
                 .name(aiResponse.getName())
                 .age(aiResponse.getAge())
@@ -41,6 +51,7 @@ public class UserService {
                 .videoUrl(videoPath) // 서버에 저장된 로컬 경로
                 .latitude(requestDto.getLatitude())
                 .longitude(requestDto.getLongitude())
+                .location(cityAndDistrict)
                 .point(100)
                 .build();
 

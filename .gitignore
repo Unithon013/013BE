@@ -60,6 +60,7 @@ target/
 *.jar
 *.war
 *.ear
+media/
 
 # Gradle || Maven
 .gradle/
