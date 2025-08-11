@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.AdditionalRecommendationRequestDto;
 import com.example.backend.dto.RecommendedUserDto;
+import com.example.backend.dto.RoomResponseDto;
 import com.example.backend.entity.Recommendation;
 import com.example.backend.entity.Room;
 import com.example.backend.service.ChatService;
@@ -41,14 +42,14 @@ public class RecommendationController {
 
 
     @PostMapping("/{targetUserId}/contact")
-    public ResponseEntity<Room> contactUser(
+    public ResponseEntity<RoomResponseDto> contactUser(
             @RequestHeader("X-User-Id") Long currentUserId,
             @PathVariable Long targetUserId) {
 
         userService.deductPoints(currentUserId, 10);
 
         Room createdRoom = chatService.createChatRoomAndSendVideo(currentUserId, targetUserId);
-        return ResponseEntity.ok(createdRoom);
+        return ResponseEntity.ok(new RoomResponseDto(createdRoom));
     }
 
     /**

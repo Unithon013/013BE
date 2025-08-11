@@ -1,5 +1,6 @@
 package com.example.backend.service;
 import com.example.backend.dto.AiResponseDto;
+import com.example.backend.entity.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
@@ -27,9 +28,9 @@ public class AiRequestService {
     public AiResponseDto processVideoDev(File videoFile) {
         AiResponseDto aiResponseDto = new AiResponseDto();
 
-        String name = "홍길동";
-        String age = "73세"; // // '60대 후반'과 같이 소개하는 경우를 위해 String 으로 설정해둠 (Integer로 나중에 변경해도 됨)
-        String hobbies = "[\n\"산책\",\n\"수다\",\n\"드라마 보기\"\n]"; // AI 서버가 hobbies를 JSON 문자열로 줌
+        String name = "박진영";
+        String age = "83세"; // // '60대 후반'과 같이 소개하는 경우를 위해 String 으로 설정해둠 (Integer로 나중에 변경해도 됨)
+        String hobbies = "[\n\"종이 접기\",\n\"과학\",\n\"사랑\"\n]"; // AI 서버가 hobbies를 JSON 문자열로 줌
 
         aiResponseDto.setName(name);
         aiResponseDto.setAge(age);
