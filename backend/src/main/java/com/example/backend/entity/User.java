@@ -30,7 +30,7 @@ public class User extends BaseTimeEntity {
     @Column(name="video_url", nullable = false)
     private String videoUrl;
 
-    private String location; // 관악, 동작, 상도 와 같은 짧은 지역 표시를 위한 필드 // -> prepersist || 위치 입력받을 때 처리 필요
+    private String location; // 관악, 동작, 상도 와 같은 짧은 지역 표시를 위한 필드
     private Double latitude;
     private Double longitude;
 
@@ -39,6 +39,9 @@ public class User extends BaseTimeEntity {
 
     @Column(name = "profile_url")
     private String profileUrl;
+
+    @Column
+    private String introduction; // 한 줄 소개용 필드 (ai 필드 추출 후 특정 포맷으로 작성해서 셋해두기)
 
 //    // User는 여러 채팅방에 참여 가능
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -51,5 +54,13 @@ public class User extends BaseTimeEntity {
         PROCESSING, // 처리 중
         COMPLETE,   // 처리 완료
         FAILED      // 처리 실패
+    }
+
+    @PrePersist
+    protected void init(){
+        // default 값 더미 데이터
+        if (latitude == null) latitude = 37.4945402275658;
+        if (longitude == null) longitude = 126.95977107078;
+        if (location == null) location = "동작";
     }
 }
