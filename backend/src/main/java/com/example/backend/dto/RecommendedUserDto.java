@@ -11,6 +11,7 @@ public class RecommendedUserDto {
     private String name;
     private String age;
     private String hobbies;
+    private String location;
     private String videoUrl;
 
     public RecommendedUserDto(User user) {
@@ -18,6 +19,7 @@ public class RecommendedUserDto {
         this.name = user.getName();
         this.age = user.getAge();
         this.hobbies = user.getHobbies();
+        this.location = user.getLocation();
         this.videoUrl = user.getVideoUrl();
     }
 }
