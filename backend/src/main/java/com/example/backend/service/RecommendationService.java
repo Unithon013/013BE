@@ -4,6 +4,7 @@ import com.example.backend.dto.RecommendedUserDto;
 import com.example.backend.entity.Recommendation;
 import com.example.backend.entity.User;
 import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.repository.ParticipantRepository;
 import com.example.backend.repository.RecommendationRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,21 +25,52 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
+    private final ParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+
     private static final int DAILY_RECOMMENDATION_LIMIT = 3;
+    private static final double HOBBY_WEIGHT = 0.6;
+    private static final double AGE_WEIGHT = 0.4;
+    private static final int ADDITIONAL_RECOMMEND_POINT = 2;
 
     @Transactional // 이 어노테이션으로 전체 메소드가 하나의 트랜잭션으로 묶임
     public List<RecommendedUserDto> purchaseAdditionalRecommendations(Long currentUserId, int count) {
 
-        // 1. 포인트 차감 로직 (ex. 추가 추천 시 20 포인트)
-        // 1명당 20 포인트라고 가정하고, 요청한 인원수만큼 포인트 차감
-        int pointsToDeduct = count * 20;
+        // 1. 포인트 차감 로직 - 요청한 인원수만큼 포인트 차감
+        int pointsToDeduct = count * ADDITIONAL_RECOMMEND_POINT;
         userService.deductPoints(currentUserId, pointsToDeduct);
 
         // 2. 추가 추천 로직 실행
         // 포인트 차감 + 추천 -> 예외 시 묶어서 자동 롤백 (트랜잭션 원자적으로)
         return getAdditionalRecommendations(currentUserId, count);
+    }
+
+    /**
+     * 추천에서 제외할 사용자 ID 목록을 생성하는 헬퍼 메서드
+     * @param currentUserId 현재 사용자 ID
+     * @return 본인, 오늘 이미 추천받은 사람, 현재 대화 중인 사람의 ID 목록
+     */
+    private List<Long> getExcludeUserIds(Long currentUserId) {
+        // 1. 오늘 이미 추천받은 사람 목록 조회
+        List<Long> alreadyRecommendedIds = recommendationRepository.findRecommendedUserIdsByUserIdAndDate(currentUserId, LocalDate.now());
+
+        // 2. 현재 대화 중인 상대방 목록 조회
+        List<Long> chattingPartnerIds = participantRepository.findChattingPartnerIdsByUserId(currentUserId);
+
+        // 3. 세 목록(본인, 추천받은 사람, 대화 중인 사람)을 모두 합쳐서 최종 제외 목록 생성
+        List<Long> excludeUserIds = Stream.of(
+                Stream.of(currentUserId),
+                alreadyRecommendedIds.stream(),
+                chattingPartnerIds.stream()
+        ).flatMap(s -> s).distinct().collect(Collectors.toList());
+
+        // 쿼리 에러 방지를 위해 목록이 비어있으면 의미 없는 값(0L) 추가
+        if (excludeUserIds.isEmpty()) {
+            excludeUserIds.add(0L);
+        }
+
+        return excludeUserIds;
     }
 
     /**
@@ -53,21 +85,17 @@ public class RecommendationService {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
 
-        List<Long> alreadyRecommendedIds = recommendationRepository.findRecommendedUserIdsByUserIdAndDate(currentUserId, LocalDate.now());
+        // 2. 제외할 ID 목록 생성 (본인 + 이미 추천한 모든 사람 + 채팅 중인 사람)
+        List<Long> excludeUserIds = getExcludeUserIds(currentUserId);
 
-        // 2. 제외할 ID 목록 생성 (본인 + 이미 추천한 모든 사람)
-        List<Long> excludeUserIds = Stream.concat(
-                Stream.of(currentUserId),
-                alreadyRecommendedIds.stream()
-        ).collect(Collectors.toList());
-
-        // 3. 위치 기반으로 '요청한 인원(count)' 만큼 새로운 추천 대상 검색
-        List<User> newRecommendedUsers = userRepository.findUsersNearBy(
+        // 3. 위치 기반 + 이성 필터링으로 '요청한 인원(count)' 만큼 새로운 추천 대상 검색
+        List<User> candidates = userRepository.findUsersNearBy(
                 currentUser.getLatitude(),
                 currentUser.getLongitude(),
                 50.0, // 50km 반경
                 excludeUserIds,
-                count // 요청받은 인원수만큼 LIMIT 설정
+                currentUser.getGender().name(),
+                50 // 요청 인원(count)보다 넉넉하게 50명 후보군 확보
         );
         
         // 필요 시 구현하기
@@ -76,13 +104,24 @@ public class RecommendationService {
 //            // 해커톤 레벨에서는 사용할 일 없을 듯
 //        }
 
+        // 4. 후보군 중에서 '나'와 가장 잘 맞는 순서로 정렬 (점수 기반)
+        candidates.sort((u1, u2) -> {
+            double score1 = calculateRecommendationScore(currentUser, u1);
+            double score2 = calculateRecommendationScore(currentUser, u2);
+            return Double.compare(score2, score1); // 점수가 높은 순(내림차순)으로 정렬
+        });
+
+        // 5. 정렬된 후보군 중에서 요청한 인원수(count)만큼만 최종 선택
+        List<User> newRecommendedUsers = candidates.stream()
+                .limit(count)
+                .toList();
+
         if (newRecommendedUsers.isEmpty()) {
-//            throw new RuntimeException("No more users to recommend."); // 추천할 사람이 더 없을 때 예외 처리
-            // 반환 대상 부족 시 예외 발생 대신 빈 배열 반환하기 - 프론트에서 처리
+            // 추천할 사람이 더 없을 경우 빈 리스트 반환
             return Collections.emptyList();
         }
 
-        // 4. 새로운 추천 기록을 DB에 저장
+        // 6. 새로운 추천 기록을 DB에 저장
         newRecommendedUsers.forEach(recommendedUser -> {
             Recommendation newLog = Recommendation.builder()
                     .user(currentUser)
@@ -92,7 +131,7 @@ public class RecommendationService {
             recommendationRepository.save(newLog);
         });
 
-        // 5. 새로 추천된 사용자 목록을 DTO로 변환하여 반환
+        // 7. 새로 추천된 사용자 목록을 DTO로 변환하여 반환
         return newRecommendedUsers.stream()
                 .map(RecommendedUserDto::new)
                 .collect(Collectors.toList());
@@ -120,27 +159,24 @@ public class RecommendationService {
         // 4. 새로 추천해야 할 인원 수 계산
         int neededRecommendations = DAILY_RECOMMENDATION_LIMIT - alreadyRecommendedIds.size();
 
-        // 5. 제외할 ID 목록 생성 (본인 + 이미 추천한 사람)
-        List<Long> excludeUserIds = Stream.concat(
-                Stream.of(currentUserId),
-                alreadyRecommendedIds.stream()
-        ).collect(Collectors.toList());
+        // 5. 제외할 ID 목록 생성 (본인 + 이미 추천한 모든 사람 + 채팅 중인 사람)
+        List<Long> excludeUserIds = getExcludeUserIds(currentUserId);
 
-
-        // 6. 위치 기반으로 새로운 추천 대상 '후보군'을 넉넉하게 검색 (예: 20명)
+        // 6. 위치 기반 + 이성 필터링으로 새로운 추천 대상 '후보군' 검색
         List<User> candidates = userRepository.findUsersNearBy(
                 currentUser.getLatitude(),
                 currentUser.getLongitude(),
-                50.0,
+                50.0, // 50km 반경
                 excludeUserIds,
-                20 // 필요한 3명보다 넉넉하게 후보군 확보
+                currentUser.getGender().name(), // 현재 유저의 성별을 전달하여 반대 성별을 찾음
+                50 // 필요한 3명보다 넉넉하게 50명 후보군 확보
         );
 
-        // 7. 후보군 중에서 '나'와 취미가 가장 비슷한 순서로 정렬
+        // 7. 후보군 중에서 '나'와 가장 잘 맞는 순서로 정렬 (점수 기반)
         candidates.sort((u1, u2) -> {
-            long u1Matches = countMatchingHobbies(currentUser, u1);
-            long u2Matches = countMatchingHobbies(currentUser, u2);
-            return Long.compare(u2Matches, u1Matches); // 내림차순 정렬
+            double score1 = calculateRecommendationScore(currentUser, u1);
+            double score2 = calculateRecommendationScore(currentUser, u2);
+            return Double.compare(score2, score1); // 점수가 높은 순(내림차순)으로 정렬
         });
 
         // 8. 정렬된 후보군 중에서 필요한 만큼만 최종 선택
@@ -148,7 +184,7 @@ public class RecommendationService {
                 .limit(neededRecommendations)
                 .toList();
 
-        // 9. 새로운 추천 기록을 DB에 저장 (기존 7번 로직)
+        // 9. 새로운 추천 기록을 DB에 저장
         newRecommendedUsers.forEach(recommendedUser -> {
             Recommendation newLog = Recommendation.builder()
                     .user(currentUser)
@@ -158,15 +194,52 @@ public class RecommendationService {
             recommendationRepository.save(newLog);
         });
 
-        // 10. 최종 추천 목록 DTO로 변환하여 반환 (기존 8번 로직)
-        List<User> finalRecommendedUsers = userRepository.findAllById(
-                Stream.concat(alreadyRecommendedIds.stream(), newRecommendedUsers.stream().map(User::getId))
-                        .collect(Collectors.toList())
-        );
+        // 10. 최종 추천 목록(기존+신규)을 DTO로 변환하여 반환
+        List<Long> finalRecommendedIds = Stream.concat(alreadyRecommendedIds.stream(), newRecommendedUsers.stream().map(User::getId))
+                .collect(Collectors.toList());
 
-        return finalRecommendedUsers.stream()
+        return userRepository.findAllById(finalRecommendedIds).stream()
                 .map(RecommendedUserDto::new)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 두 사용자 간의 추천 점수를 계산하는 헬퍼 메소드
+     * @param currentUser 현재 사용자
+     * @param candidateUser 추천 후보 사용자
+     * @return 최종 추천 점수 (높을수록 적합)
+     */
+    private double calculateRecommendationScore(User currentUser, User candidateUser) {
+
+        // 1. 취미 점수 계산 (가중치 60%)
+        long hobbyMatches = countMatchingHobbies(currentUser, candidateUser);
+        double hobbyScore = hobbyMatches * 20; // 겹치는 취미 1개당 20점
+
+        // 2. 나이 점수 계산 (가중치 40%)
+        int currentUserAge = parseAge(currentUser.getAge());
+        int candidateUserAge = parseAge(candidateUser.getAge());
+
+        // 나이 차이가 적을수록 높은 점수 (최대 100점)
+        int ageDifference = Math.abs(currentUserAge - candidateUserAge);
+        double ageScore = Math.max(0, 100 - (ageDifference * 5.0)); // 1살 차이마다 5점씩 감점
+
+        // 3. 가중치를 적용하여 최종 점수 계산
+        return (hobbyScore * HOBBY_WEIGHT) + (ageScore * AGE_WEIGHT);
+    }
+
+    /**
+     * DB에 저장된 나이 문자열(예: "70 후반", "60대")에서 숫자만 추출하는 헬퍼 메소드
+     */
+    private int parseAge(String ageStr) {
+        if (ageStr == null || ageStr.isBlank()) {
+            return 70; // 나이 정보가 없을 경우 기본값 70세로 간주
+        }
+        try {
+            // "세", "대" 등 모든 문자를 제거하고 숫자만 남겨서 정수로 변환
+            return Integer.parseInt(ageStr.replaceAll("[^0-9]", ""));
+        } catch (NumberFormatException e) {
+            return 70; // 변환 실패 시 기본값 70세로 간주
+        }
     }
 
     public List<Recommendation> findAll() {
@@ -177,16 +250,10 @@ public class RecommendationService {
         return recommendationRepository.save(rec);
     }
 
-    // hobbies 필드(JSON 문자열)를 파싱하여 겹치는 취미 개수를 세는 헬퍼 메소드
+    /**
+     * hobbies 필드(JSON 문자열)를 파싱하여 겹치는 취미 개수를 세는 헬퍼 메소드
+     */
     private long countMatchingHobbies(User user1, User user2) {
-//        String hobbies1 = user1.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
-//        String hobbies2 = user2.getHobbies().replaceAll("[\"\\[\\]\\s]", "");
-//
-//        List<String> list1 = List.of(hobbies1.split(","));
-//        List<String> list2 = List.of(hobbies2.split(","));
-//
-//        return list1.stream().filter(list2::contains).count();
-
         ObjectMapper mapper = new ObjectMapper();
         try {
             // hobbies가 null이거나 비어있을 경우를 대비

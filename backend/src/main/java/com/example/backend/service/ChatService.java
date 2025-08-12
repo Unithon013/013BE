@@ -94,7 +94,14 @@ public class ChatService {
      */
     @Transactional
     public Room createChatRoomAndSendVideo(Long currentUserId, Long targetUserId) {
-        // 0. 사용자 정보 조회
+
+//        // 0. 기존 방 존재 여부 확인 후 사용자 정보 조회
+//        // 방 존재 여부 확인: 로직 상 실제로 사용할 일 없음.
+//        Room existingRoom = participantRepository.findRoomByUserIds(currentUserId, targetUserId);
+//        if (existingRoom != null) {
+//            throw new RuntimeException("이미 해당 사용자와 채팅방이 존재합니다. roomId=" + existingRoom.getId());
+//            // 또는 return existingRoom; // 기존 방 반환도 가능
+//        }
         User currentUser = userRepository.findById(currentUserId).orElseThrow(() -> new RuntimeException("Current User not found"));
         User targetUser = userRepository.findById(targetUserId).orElseThrow(() -> new RuntimeException("Target User not found"));
 

@@ -21,6 +21,7 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
     private final ChatService chatService;
     private final UserService userService;
+    private final int CONTACT_POINT = 5;
 
 //    @GetMapping
 //    public List<Recommendation> getRecommendations() {
@@ -46,7 +47,8 @@ public class RecommendationController {
             @RequestHeader("X-User-Id") Long currentUserId,
             @PathVariable Long targetUserId) {
 
-        userService.deductPoints(currentUserId, 10);
+        // 연락하기 시도 시에 차감하는 포인트
+        userService.deductPoints(currentUserId, CONTACT_POINT);
 
         Room createdRoom = chatService.createChatRoomAndSendVideo(currentUserId, targetUserId);
         return ResponseEntity.ok(new RoomResponseDto(createdRoom));

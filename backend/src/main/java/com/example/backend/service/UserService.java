@@ -34,17 +34,17 @@ public class UserService {
         // 1. 영상 파일과 프로필 사진을 서버에 저장
         String videoPath = fileStorageService.storeFile(requestDto.getVideo());
 
-        // 2. 좌표 -> 지역명 변환
-        String cityAndDistrict = locationService.getCityAndDistrict(requestDto.getLatitude(), requestDto.getLongitude());
+        // 2. 좌표 -> 지역명 변환 (실제 사용 시 이 부분 활성화; 테스트: 더미로 처리)
+        // String cityAndDistrict = locationService.getCityAndDistrict(requestDto.getLatitude(), requestDto.getLongitude());
 
         // 3. AI 분석 전, 'PROCESSING' 상태로 기본 User 정보만 먼저 생성하고 DB에 저장
         User newUser = User.builder()
                 .profileUrl(requestDto.getProfileUrl())
                 .videoUrl(videoPath)
-                .latitude(requestDto.getLatitude())
-                .longitude(requestDto.getLongitude())
-                .location(cityAndDistrict)
-                .status(User.Status.PROCESSING) // 처리중 상태로 저장
+                //.latitude(requestDto.getLatitude())
+                //.longitude(requestDto.getLongitude())
+                //.location(cityAndDistrict)
+                .status(User.Status.PROCESSING) // 처리중 상태로
                 .point(100)
                 .build();
 
@@ -76,7 +76,7 @@ public class UserService {
                     user.setName(aiResponse.getName() == null ? "미상" : aiResponse.getName());
                     user.setAge(aiResponse.getAge() == null ? "미상" : aiResponse.getAge());
                     user.setHobbies(aiResponse.getHobbies());
-                    user.setGender(aiResponse.getGender() == null ? User.Gender.M : User.Gender.valueOf(aiResponse.getGender())); // default=M으로 설정 
+                    user.setGender(aiResponse.getGender() == null ? User.Gender.F : User.Gender.valueOf(aiResponse.getGender())); // default=M으로 설정
                     user.setStatus(User.Status.COMPLETE); // 상태를 '완료'로 변경
                     userRepository.save(user);
                     break;
