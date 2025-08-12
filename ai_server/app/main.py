@@ -1,52 +1,83 @@
-# main.py
-# API 라우팅 (FastAPI)
-
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 import os
+import uuid
+import json
+from typing import Dict
 
+# 로컬 파일 import
 from .utils import save_upload_file, remove_file
 from .stt import transcribe_video
 from .nlp import extract_info_llm
 
 app = FastAPI(
     title="시니어 데이팅 앱 AI 서비스: 불타는 씨니어, 불씨",
-    description="자기소개 영상 분석을 통한 사용자 정보 추출 API",
-    version="1.0.0"
+    description="자기소개 영상 분석을 통한 사용자 정보 추출 API (백그라운드 처리)",
+    version="3.0.0"
 )
 
-@app.post("/process-video", summary="자기소개 영상 분석 및 사용자 정보 추출")
-async def process_video_endpoint(
-    video_file: UploadFile = File(..., description="사용자의 자기소개 영상 파일 (mp4, mov 등)")
-):
-    temp_video_path = None
+# 작업 상태와 결과를 저장할 인메모리 딕셔너리
+tasks: Dict[str, Dict] = {}
+
+def process_video_in_background(task_id: str, temp_video_path: str):
+    """
+    실제 분석 작업을 수행하는 백그라운드 함수
+    """
     try:
-        # 1. 업로드된 영상 파일을 임시로 저장
-        temp_video_path = save_upload_file(video_file)
-        print(f"영상 파일 임시 저장 완료: {temp_video_path}")
-
-        # 2. STT 서비스로 영상에서 한국어 텍스트 추출
-        transcribed_text = await transcribe_video(temp_video_path) # 비동기 처리가 불가능하면 async/await 제외
+        print(f"[Task: {task_id}] 백그라운드 분석 시작.")
+        
+        # 1. STT와 NLP 분석을 순차적으로 실행
+        transcribed_text = transcribe_video(temp_video_path)
         if not transcribed_text:
-            raise HTTPException(status_code=400, detail="음성 인식 가능한 텍스트를 찾을 수 없습니다. 영상을 다시 확인해주세요.")
+            raise ValueError("음성 인식 가능한 텍스트를 찾을 수 없습니다.")
         
-        # 3. NLP 서비스로 텍스트에서 사용자 정보 추출 (Gemini LLM)
-        extracted_user_info = await extract_info_llm(transcribed_text)
+        extracted_user_info = extract_info_llm(transcribed_text)
         
-        return JSONResponse(content={
-            "status": "success",
-            "extracted_info": extracted_user_info,
-            "raw_stt_text_data": transcribed_text # 디버깅 또는 추가 분석을 위해 원본 텍스트도 반환
-        })
+        # 2. DTO 형식에 맞게 hobbies 필드를 JSON 문자열로 변환
+        if 'hobbies' in extracted_user_info and isinstance(extracted_user_info.get('hobbies'), list):
+            extracted_user_info['hobbies'] = json.dumps(extracted_user_info['hobbies'], ensure_ascii=False)
+        
+        # 3. 작업 상태와 결과 업데이트
+        tasks[task_id]['status'] = 'completed'
+        tasks[task_id]['result'] = extracted_user_info
+        print(f"[Task: {task_id}] 분석 완료.")
 
-    except HTTPException as e:
-        # FastAPI의 HTTPException은 그대로 다시 발생
-        raise e
     except Exception as e:
-        # 예상치 못한 다른 오류 처리
-        print(f"API 처리 중 치명적인 오류 발생: {e}")
-        raise HTTPException(status_code=500, detail=f"서버 내부 오류가 발생했습니다: {e}")
+        print(f"[Task: {task_id}] 오류 발생: {e}")
+        tasks[task_id]['status'] = 'failed'
+        tasks[task_id]['error'] = str(e)
     finally:
-        # 4. 임시 파일 삭제 (오류 발생 여부와 관계없이 실행)
-        if temp_video_path:
-            remove_file(temp_video_path)
+        # 4. 임시 파일 삭제
+        remove_file(temp_video_path)
+        print(f"[Task: {task_id}] 임시 파일 삭제 완료.")
+
+
+@app.post("/process-video", status_code=202, summary="영상 분석 작업 요청 (백그라운드)")
+async def request_video_processing(
+    background_tasks: BackgroundTasks,
+    video: UploadFile = File(..., description="사용자의 자기소개 영상 파일 (mp4, mov 등)")
+):
+    """
+    영상 분석을 요청하고 즉시 작업 ID를 반환합니다.
+    """
+    temp_video_path = save_upload_file(video)
+    task_id = str(uuid.uuid4())
+    
+    tasks[task_id] = {"status": "processing", "result": None}
+    
+    # FastAPI의 BackgroundTasks에 실제 분석 함수를 등록합니다.
+    background_tasks.add_task(process_video_in_background, task_id, temp_video_path)
+    
+    return {"task_id": task_id, "message": "영상 분석 작업이 시작되었습니다."}
+
+
+@app.get("/tasks/{task_id}", summary="작업 상태 및 결과 조회")
+async def get_task_status(task_id: str):
+    """
+    작업 ID를 사용하여 분석 진행 상태와 최종 결과를 확인합니다.
+    """
+    task = tasks.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+    
+    return JSONResponse(content=task)

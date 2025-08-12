@@ -9,4 +9,5 @@ public class OnboardingRequestDto {
     private MultipartFile video;
     private Double latitude;
     private Double longitude;
+    private String profileUrl;
 }
