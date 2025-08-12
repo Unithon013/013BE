@@ -4,16 +4,26 @@ import os
 import uuid
 import json
 from typing import Dict
+from contextlib import asynccontextmanager
 
 # 로컬 파일 import
 from .utils import save_upload_file, remove_file
-from .stt import transcribe_video
+from .stt import transcribe_video, load_whisper_model
 from .nlp import extract_info_llm
+
+# [신규] FastAPI의 lifespan 이벤트를 사용하여 시작 시 모델을 로드합니다.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 서버 시작 시 실행될 코드
+    load_whisper_model()
+    yield
+    # 서버 종료 시 실행될 코드 (필요 시)
 
 app = FastAPI(
     title="시니어 데이팅 앱 AI 서비스: 불타는 씨니어, 불씨",
     description="자기소개 영상 분석을 통한 사용자 정보 추출 API (백그라운드 처리)",
-    version="3.0.0"
+    version="3.0.0",
+    lifespan=lifespan # [수정] lifespan 이벤트 핸들러 등록
 )
 
 # 작업 상태와 결과를 저장할 인메모리 딕셔너리
@@ -27,11 +37,15 @@ def process_video_in_background(task_id: str, temp_video_path: str):
         print(f"[Task: {task_id}] 백그라운드 분석 시작.")
         
         # 1. STT와 NLP 분석을 순차적으로 실행
+        print(f"[Task: {task_id}] STT 분석(transcribe_video)을 시작합니다...")
         transcribed_text = transcribe_video(temp_video_path)
+        print(f"[Task: {task_id}] STT 분석 완료. 결과 길이: {len(transcribed_text)}")
         if not transcribed_text:
             raise ValueError("음성 인식 가능한 텍스트를 찾을 수 없습니다.")
         
+        print(f"[Task: {task_id}] NLP 분석(extract_info_llm)을 시작합니다...")
         extracted_user_info = extract_info_llm(transcribed_text)
+        print(f"[Task: {task_id}] NLP 분석 완료.")
         
         # 2. DTO 형식에 맞게 hobbies 필드를 JSON 문자열로 변환
         if 'hobbies' in extracted_user_info and isinstance(extracted_user_info.get('hobbies'), list):
