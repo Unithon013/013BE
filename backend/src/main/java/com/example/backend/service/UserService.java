@@ -23,6 +23,7 @@ public class UserService {
 
     // 로깅용 Logger 객체
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
+    private static final String DEFAULT_INTRO = "새로운 인연을 원하는 시니어입니다.";
 
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
@@ -39,8 +40,8 @@ public class UserService {
 
         // 3. AI 분석 전, 'PROCESSING' 상태로 기본 User 정보만 먼저 생성하고 DB에 저장
         User newUser = User.builder()
-                .profileUrl(requestDto.getProfileUrl())
                 .videoUrl(videoPath)
+//                .profileUrl(requestDto.getProfileUrl())
                 //.latitude(requestDto.getLatitude())
                 //.longitude(requestDto.getLongitude())
                 //.location(cityAndDistrict)
@@ -76,7 +77,8 @@ public class UserService {
                     user.setName(aiResponse.getName() == null ? "미상" : aiResponse.getName());
                     user.setAge(aiResponse.getAge() == null ? "미상" : aiResponse.getAge());
                     user.setHobbies(aiResponse.getHobbies());
-                    user.setGender(aiResponse.getGender() == null ? User.Gender.F : User.Gender.valueOf(aiResponse.getGender())); // default=M으로 설정
+                    user.setGender(aiResponse.getGender() == null ? User.Gender.F : User.Gender.valueOf(aiResponse.getGender())); // default=F로 설정
+                    user.setIntroduction(aiResponse.getIntroduction() == null ? DEFAULT_INTRO : aiResponse.getIntroduction());
                     user.setStatus(User.Status.COMPLETE); // 상태를 '완료'로 변경
                     userRepository.save(user);
                     break;
