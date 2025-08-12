@@ -22,7 +22,7 @@ public class User extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column // 실제 어떻게 입력 처리할 지 상의해보고 nullable false 세팅
     private Gender gender;
-    private enum Gender{M, FM}
+    public enum Gender{M, F}
 
     @Column(columnDefinition = "TEXT")
     private String hobbies;  // JSON 형식 텍스트 저장
@@ -44,4 +44,12 @@ public class User extends BaseTimeEntity {
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
 //    private List<Participant> participants = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    private Status status; // AI 분석 상태를 저장할 필드
+
+    public enum Status {
+        PROCESSING, // 처리 중
+        COMPLETE,   // 처리 완료
+        FAILED      // 처리 실패
+    }
 }
