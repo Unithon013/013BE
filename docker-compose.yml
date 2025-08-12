@@ -1,0 +1,34 @@
+# Docker Compose 파일 버전 정의
+version: '3.8'
+
+# 실행할 서비스(컨테이너)들 정의
+services:
+  # 1. 백엔드 API 서버 (스프링)
+  backend-server:
+    # 백엔드 프로젝트 폴더에 있는 Dockerfile을 사용하여 이미지를 빌드
+    build: ./backend
+    # 컨테이너 이름을 지정
+    container_name: backend_server
+    # 포트 연결: 외부(EC2)의 8080 포트를 컨테이너의 8080 포트로 연결
+    ports:
+      - "8080:8080"
+    # 환경 변수 설정 (application.properties보다 우선 적용됨)
+    environment:
+      - AI_SERVER_URL=http://ai-server:8000
+      # 여기에 RDS DB 연결 정보 등을 추가하면 됩니다.
+      - SPRING_DATASOURCE_URL=jdbc:mysql://3.37.130.226:3306/unithon
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=unithon031
+    # ai-server가 먼저 실행된 후에 backend-server가 실행되도록 의존성 설정
+    depends_on:
+      - ai-server
+
+  # 2. AI 서버 (FastAPI)
+  ai-server:
+    # AI 서버 프로젝트 폴더에 있는 Dockerfile을 사용하여 이미지를 빌드
+    build: ./ai_server
+    # 컨테이너 이름을 지정
+    container_name: ai_server
+    # 포트 연결: 외부(EC2)의 8000 포트를 컨테이너의 8000 포트로 연결
+    ports:
+      - "8000:8000"
