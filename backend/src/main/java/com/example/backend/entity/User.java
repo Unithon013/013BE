@@ -14,7 +14,7 @@ public class User extends BaseTimeEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column // default 세팅
+    @Column
     private String name;
 
     private String age; // '60대 후반'과 같이 소개하는 경우를 위해 String 으로 설정해둠 (Integer로 나중에 변경해도 됨)
@@ -22,6 +22,7 @@ public class User extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column // 실제 어떻게 입력 처리할 지 상의해보고 nullable false 세팅
     private Gender gender;
+
     public enum Gender{M, F}
 
     @Column(columnDefinition = "TEXT")
@@ -41,7 +42,7 @@ public class User extends BaseTimeEntity {
     private String profileUrl;
 
     @Column
-    private String introduction; // 한 줄 소개용 필드 (ai 필드 추출 후 특정 포맷으로 작성해서 셋해두기)
+    private String introduction; // 한 줄 소개용 필드
 
 //    // User는 여러 채팅방에 참여 가능
 //    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -62,5 +63,6 @@ public class User extends BaseTimeEntity {
         if (latitude == null) latitude = 37.4945402275658;
         if (longitude == null) longitude = 126.95977107078;
         if (location == null) location = "동작";
+        if (profileUrl == null) profileUrl = "https://placehold.co/100x100";
     }
 }
