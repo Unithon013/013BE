@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import com.example.backend.controller.UserController;
 import com.example.backend.dto.RecommendedUserDto;
 import com.example.backend.entity.Recommendation;
 import com.example.backend.entity.User;
@@ -8,6 +9,8 @@ import com.example.backend.repository.ParticipantRepository;
 import com.example.backend.repository.RecommendationRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class RecommendationService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
     private final RecommendationRepository recommendationRepository;
     private final ParticipantRepository participantRepository;
     private final UserRepository userRepository;
@@ -171,6 +175,14 @@ public class RecommendationService {
                 currentUser.getGender().name(), // 현재 유저의 성별을 전달하여 반대 성별을 찾음
                 50 // 필요한 3명보다 넉넉하게 50명 후보군 확보
         );
+
+        for (User candidate : candidates){
+            log.info(">>>>> cadidatie 추출 성공, candidate ID: {}", candidate.getId());
+            log.info(">>>>> cadidatie 추출 성공, candidate Age: {}", candidate.getAge());
+            log.info(">>>>> cadidatie 추출 성공, candidate Gender: {}", candidate.getGender());
+            log.info(">>>>> cadidatie 추출 성공, candidate Hobbies: {}", candidate.getHobbies());
+            log.info(">>>>> cadidatie 추출 성공, candidate Introduction: {}", candidate.getIntroduction());
+        }
 
         // 7. 후보군 중에서 '나'와 가장 잘 맞는 순서로 정렬 (점수 기반)
         candidates.sort((u1, u2) -> {

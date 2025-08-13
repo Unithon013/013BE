@@ -41,12 +41,12 @@ public class RoomResponseDto {
         private Long id;
         private Long userId;
         // 필요하다면 User의 다른 정보도 추가 가능
-        // private String userName;
+        private String userName;
 
         public ParticipantDto(Participant participant) {
             this.id = participant.getId();
             this.userId = participant.getUser().getId();
-            // this.userName = participant.getUser().getName();
+             this.userName = participant.getUser().getName();
         }
     }
 
