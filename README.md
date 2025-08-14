@@ -5,6 +5,8 @@
 > AI 영상 분석을 통해 시니어의 자기소개를 프로필로 자동 완성하고,  
 > 맞춤형 상대를 지능적으로 추천해주는 데이팅 앱의 백엔드 & AI 서버 프로젝트입니다.
 
+<img src="https://ibb.co/dT6Ncpw">
+
 ---
 
 ## 🌟 주요 기능 (Key Features)
@@ -41,7 +43,7 @@
 | 이름                                        | 역할     | 담당 파트                                             |
 | ------------------------------------------- | -------- | ----------------------------------------------------- |
 | [@김하빈](https://github.com/KIM-GOING)     | PM       | 사업 기획, 프로젝트 총괄                              |
-| 김민정                                      | 디자이너 | UI/UX 디자인                                          |
+| [@김민정](https://github.com/p1578p-debug)  | 디자이너 | UI/UX 디자인                                          |
 | [@이영주](https://github.com/oortmealy)     | 개발자   | 프론트엔드 (React Native)                             |
 | [@김은혜](https://github.com/eunhyekimyeah) | 개발자   | 프론트엔드 (React Native)                             |
 | [@은지우](https://github.com/meraki6512)    | 개발자   | 백엔드 (Spring Boot), AI 서버 (FastAPI), 인프라 (AWS) |
