@@ -3,7 +3,7 @@
 **AI 기반 시니어 데이팅 앱 - 서버(Backend & AI)**
 
 > AI 영상 분석을 통해 시니어의 자기소개를 프로필로 자동 완성하고,  
-> 맞춤형 상대를 지능적으로 추천해주는 데이팅 앱의 백엔드 & AI 서버 프로젝트입니다.
+> 맞춤형 상대를 지능적으로 추천해주는 데이팅 앱 프로젝트의 백엔드 & AI 서버 레포지토리입니다.
 
 ![Image](https://github.com/user-attachments/assets/71b06142-3f75-4afa-a7da-8496270037ed)
 
@@ -42,7 +42,7 @@
 
 | 이름                                        | 역할     | 담당 파트                                             |
 | ------------------------------------------- | -------- | ----------------------------------------------------- |
-| [@김하빈](https://github.com/KIM-GOING)     | PM       | 사업 기획, 프로젝트 총괄                              |
+| [@김하빈](https://github.com/KIM-GOING)     | PM       | 사업 기획, 프로젝트 총괄, 백엔드 지원                 |
 | [@김민정](https://github.com/p1578p-debug)  | 디자이너 | UI/UX 디자인                                          |
 | [@이영주](https://github.com/oortmealy)     | 개발자   | 프론트엔드 (React Native)                             |
 | [@김은혜](https://github.com/eunhyekimyeah) | 개발자   | 프론트엔드 (React Native)                             |
