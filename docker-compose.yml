@@ -1,5 +1,5 @@
 # Docker Compose 파일 버전 정의
-version: '3.8'
+version: "3.8"
 
 # 실행할 서비스(컨테이너)들 정의
 services:
@@ -16,12 +16,13 @@ services:
     environment:
       - AI_SERVER_URL=http://ai-server:8000
       # 여기에 RDS DB 연결 정보 등을 추가하면 됩니다.
-      - SPRING_DATASOURCE_URL=jdbc:mysql://3.37.130.226:3306/unithon
-      - SPRING_DATASOURCE_USERNAME=admin
-      - SPRING_DATASOURCE_PASSWORD=unithon031
+      - SPRING_DATASOURCE_URL=
+      - SPRING_DATASOURCE_USERNAME=
+      - SPRING_DATASOURCE_PASSWORD=
     # ai-server가 먼저 실행된 후에 backend-server가 실행되도록 의존성 설정
     depends_on:
-      - ai-server
+      ai-server:
+        condition: service_healthy
 
   # 2. AI 서버 (FastAPI)
   ai-server:
@@ -32,3 +33,9 @@ services:
     # 포트 연결: 외부(EC2)의 8000 포트를 컨테이너의 8000 포트로 연결
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

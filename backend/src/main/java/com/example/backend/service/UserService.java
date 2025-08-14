@@ -24,6 +24,7 @@ public class UserService {
     // 로깅용 Logger 객체
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
     private static final String DEFAULT_INTRO = "새로운 인연을 원하는 시니어입니다.";
+    private static final String DEFAULT_PROFILE = "https://placehold.co/100x100";
 
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
@@ -41,7 +42,7 @@ public class UserService {
         // 3. AI 분석 전, 'PROCESSING' 상태로 기본 User 정보만 먼저 생성하고 DB에 저장
         User newUser = User.builder()
                 .videoUrl(videoPath)
-//                .profileUrl(requestDto.getProfileUrl())
+                .profileUrl(requestDto.getProfileUrl() == null ? DEFAULT_PROFILE : requestDto.getProfileUrl())
                 //.latitude(requestDto.getLatitude())
                 //.longitude(requestDto.getLongitude())
                 //.location(cityAndDistrict)
