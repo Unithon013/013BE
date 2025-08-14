@@ -5,7 +5,7 @@
 > AI 영상 분석을 통해 시니어의 자기소개를 프로필로 자동 완성하고,  
 > 맞춤형 상대를 지능적으로 추천해주는 데이팅 앱의 백엔드 & AI 서버 프로젝트입니다.
 
-<img src="https://ibb.co/dT6Ncpw">
+![Image](https://github.com/user-attachments/assets/71b06142-3f75-4afa-a7da-8496270037ed)
 
 ---
 
